@@ -8,8 +8,6 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		// print usage
-		// get file name this binary
 		_, _ = os.Stderr.WriteString(fmt.Sprintf("Usage: %s <connection name>\n", os.Args[0]))
 		os.Exit(1)
 	}
@@ -19,14 +17,20 @@ func main() {
 }
 
 func nmcliConnSwitch(connName string) {
-	//run os command
-	cmd := exec.Command("nmcli", "-f", "GENERAL.STATE", "con", "show", connName)
+	cmd := exec.Command("nmcli", "connection", "show", connName)
+	if cmd.Run() != nil {
+		// connection not found
+		_, _ = os.Stderr.WriteString(fmt.Sprintf("Connection %s not found\n", connName))
+		os.Exit(1)
+	}
+
+	cmd = exec.Command("nmcli", "-f", "GENERAL.STATE", "connection", "show", connName)
 	out, _ := cmd.Output()
 	if string(out) == "" {
-		cmd = exec.Command("nmcli", "con", "up", connName)
+		cmd = exec.Command("nmcli", "connection", "up", connName)
 		_ = cmd.Run()
 	} else {
-		cmd = exec.Command("nmcli", "con", "down", connName)
+		cmd = exec.Command("nmcli", "connection", "down", connName)
 		_ = cmd.Run()
 	}
 }
