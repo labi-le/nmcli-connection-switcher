@@ -1,17 +1,32 @@
-.PHONY: build
+#PROJ_NAME = $(shell go list -m | cut -d '/' -f 3)
+PROJ_NAME = nmcli-connection-switcher
 
-PACKAGE_NAME = nmcli-connection-switcher
-INSTALL_DIR = /usr/local/bin
+MAIN_PATH = main.go
+BUILD_PATH = build/package/
 
-build-release:
-	go build -ldflags "-s" -a -v -o build/package/$(PACKAGE_NAME) main.go
+INSTALL_PATH = /usr/bin/
 
-build:
-	go build -v -o build/package/$(PACKAGE_NAME)-debug main.go
-
-install: build-release
-	sudo cp build/package/$(PACKAGE_NAME) $(INSTALL_DIR)/$(PACKAGE_NAME)
+install:
+	make build-default
+	sudo cp $(BUILD_PATH)$(PROJ_NAME) $(INSTALL_PATH)$(PROJ_NAME)
 
 uninstall:
-	sudo rm $(INSTALL_DIR)/$(PACKAGE_NAME)
+	sudo rm $(INSTALL_PATH)$(PROJ_NAME)
 
+build-default: clean
+	go build --ldflags '-extldflags "-static" -s' -v -o $(BUILD_PATH)$(PROJ_NAME) $(MAIN_PATH)
+
+build-arm: clean
+	GOOS=linux GOARCH=arm GOARM=7 make build-default
+
+build-static: clean
+	go build -ldflags "-w -linkmode external -extldflags "-static" -s" -v -o $(BUILD_PATH)$(PROJ_NAME) $(MAIN_PATH)
+
+build-debug: clean
+	go build -v -o $(BUILD_PATH)$(PROJ_NAME) $(MAIN_PATH)
+
+clean:
+	rm -rf $(BUILD_PATH)*
+
+tests:
+	go test -coverpkg=./... ./... -parallel=2

@@ -17,20 +17,32 @@ func main() {
 }
 
 func nmcliConnSwitch(connName string) {
-	cmd := exec.Command("nmcli", "connection", "show", connName)
-	if cmd.Run() != nil {
-		// connection not found
-		_, _ = os.Stderr.WriteString(fmt.Sprintf("Connection %s not found\n", connName))
-		os.Exit(1)
+	if err := exec.Command("nmcli", "connection", "show", connName).Run(); err != nil {
+		notify(err.Error(), true)
 	}
 
-	cmd = exec.Command("nmcli", "-f", "GENERAL.STATE", "connection", "show", connName)
-	out, _ := cmd.Output()
+	out, _ := exec.Command("nmcli", "-f", "GENERAL.STATE", "connection", "show", connName).Output()
 	if string(out) == "" {
-		cmd = exec.Command("nmcli", "connection", "up", connName)
-		_ = cmd.Run()
+		if err := exec.Command("nmcli", "connection", "up", connName).Run(); err != nil {
+			notify(err.Error(), true)
+		}
+
+		notify(fmt.Sprintf("Connected to %s", connName), false)
+
 	} else {
-		cmd = exec.Command("nmcli", "connection", "down", connName)
-		_ = cmd.Run()
+		if err := exec.Command("nmcli", "connection", "down", connName).Run(); err != nil {
+			notify(err.Error(), true)
+		}
+
+		notify(fmt.Sprintf("Disconnected from %s", connName), false)
+	}
+}
+
+func notify(msg string, exit bool) {
+	_ = exec.Command("notify-send", "Network Manager", msg).Run()
+	_, _ = os.Stdout.WriteString(msg)
+
+	if exit {
+		os.Exit(1)
 	}
 }
